@@ -15,7 +15,7 @@ const loadPosenet = async () => {
       width: 800,
       height: 600,
     },
-    multiplier: 0.75
+    multiplier: 0.75,
   })
 }
 

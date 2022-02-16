@@ -35,21 +35,22 @@ function App() {
   }, []);
 
   const startPoseEstimation = () => {
-    if (webcamRef?.current) {
+    if (webcamRef?.current && webcamRef.current.video.readyState === 4) {
       poseEstimationLoop.current = setInterval(() => {
         const video = webcamRef?.current?.video;
         const videoWidth = webcamRef?.current?.video.videoWidth;
         const videoHeight = webcamRef?.current?.video.videoHeight;
         console.log('width', video.width, videoWidth)
         console.log('height', video.height, videoHeight)
-        video.width = videoWidth;
-        video.height = videoHeight;
-        //console.log('Time:', Date.now());
+        webcamRef.current.video.width = videoWidth;
+        webcamRef.current.video.height = videoHeight;
+        const start = Date.now();
         model?.estimatePoses?.(video, {
           flipHorizontal: false,
         }).then(pose => {
           console.log('Pose', pose);
-          console.log('At time', Date.now());
+          console.log('End after', Date.now() - start);
+          console.log(tf.getBackend())
         }).catch(console.error);
       }, 100);
     }
