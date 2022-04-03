@@ -1,25 +1,22 @@
 import {useCallback, useEffect, useRef, useState} from "react";
-import Webcam from 'react-webcam'
 import * as tf from '@tensorflow/tfjs';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import {drawKeypoints, drawSkeleton} from './utilities';
 import '@tensorflow/tfjs-backend-webgl';
 import './App.css';
 import {
-  Alert,
-  AppBar,
-  Button,
   Card,
   CardActions,
   CardContent,
-  FormControl, FormHelperText,
-  Grid,
-  InputLabel, NativeSelect, Snackbar,
-  Toolbar,
-  Typography
+  Grid
 } from "@mui/material";
-import { processData } from './dataProcessing';
-import { runTraining } from "./modelTraining";
+import {processData} from './dataProcessing';
+import {runTraining} from "./modelTraining";
+import TrainingCam from "./react-components/TrainingCam";
+import TrainingModelControls from "./react-components/TrainingModelControls";
+import WorkoutRequirements from "./react-components/WorkoutRequirements";
+import Snackbar from "./react-components/Snackbar";
+import TrainingAppBar from "./react-components/TrainingAppBar";
 
 const MIN_CONFIDENCE = 0.5;
 
@@ -135,7 +132,7 @@ function App() {
               console.log(tf.getBackend());
               console.log(pose);
               console.log(workoutState.workout);
-              const rawDataRow = { xs: normalizedKeypoints, ys: workoutState.workout }
+              const rawDataRow = {xs: normalizedKeypoints, ys: workoutState.workout}
               setRawData(rawData => [...rawData, rawDataRow]);
             }
             drawCanvas(pose, videoWidth, videoHeight, canvasRef.current);
@@ -199,102 +196,24 @@ function App() {
     <div className="App">
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <AppBar position="static" sx={{
-            backgroundColor: '#1875d2'
-          }}>
-            <Toolbar variant="dense">
-              <Typography variant="h6" color="inherit" sx={{
-                flexGrow: 1,
-                textAlign: 'left'
-              }}>
-                Fitness Assistant
-              </Typography>
-              <Button color="inherit">Start Workout</Button>
-              <Button color="inherit">History</Button>
-              <Button color="inherit">Reset</Button>
-            </Toolbar>
-          </AppBar>
+          <TrainingAppBar />
         </Grid>
       </Grid>
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Webcam
-                ref={webcamRef}
-                style={{
-                  marginTop: "10px",
-                  marginBottom: "10px",
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                  left: 0,
-                  right: 0,
-                  textAlign: "center",
-                  zindex: 9,
-                  width: WINDOW_WIDTH,
-                  height: WINDOW_HEIGHT,
-                }}
-              />
-              <canvas
-                ref={canvasRef}
-                style={{
-                  position: "absolute",
-                  marginTop: "10px",
-                  marginBottom: "10px",
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                  left: 0,
-                  right: 0,
-                  textAlign: "center",
-                  zindex: 9,
-                  width: WINDOW_WIDTH,
-                  height: WINDOW_HEIGHT,
-                }}
+              <TrainingCam
+                webcamRef={webcamRef}
+                canvasRef={canvasRef}
+                width={WINDOW_WIDTH}
+                height={WINDOW_HEIGHT}
               />
             </CardContent>
             <CardActions style={{justifyContent: 'center'}}>
               <Grid container spacing={0}>
                 <Grid item xs={12}>
-                  <Toolbar style={{justifyContent: 'center'}}>
-                    {[{
-                      name: 'Jumping Jacks',
-                      value: 75,
-                    }, {
-                      name: 'Wall-sit',
-                      value: 200,
-                    }, {
-                      name: 'Lunges',
-                      value: 5,
-                    }].map(({name, value}) => (
-                      <Card
-                        key={name}
-                        sx={{
-                          width: '250px',
-                          margin: '10px',
-                        }}
-                      >
-                        <CardContent>
-                          <Typography
-                            sx={{
-                              flexGrow: 1,
-                              textAlign: 'left'
-                            }}
-                            color="textSecondary"
-                            gutterBottom
-                          >
-                            {name}
-                          </Typography>
-                          <Typography
-                            variant="h2"
-                            component="h2"
-                            color="secondary"
-                          >
-                            {value}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </Toolbar>
+                  <WorkoutRequirements/>
                 </Grid>
               </Grid>
             </CardActions>
@@ -309,75 +228,29 @@ function App() {
             alignItems: 'center',
           }}
         >
-          <FormControl
-            required
-            sx={{
-              margin: 1,
-              minWidth: 120,
-            }}
-          >
-            <InputLabel
-              htmlFor="age-native-helper"
-            >
-              Workout
-            </ InputLabel>
-            <NativeSelect
-              value={workoutState}
-              onChange={handleWorkoutSelect}
-            >
-              <option>None</option>
-              <option value="jumping_jacks">Jumping Jacks</option>
-              <option value="wall-sit">Wall-Sit</option>
-              <option value="lunges">Lunges</option>
-            </NativeSelect>
-            <FormHelperText>
-              Select training data type
-            </FormHelperText>
-          </FormControl>
-          <Toolbar>
-            <Typography
-              sx={{
-                marginRight: 16
-              }}
-            >
-              <Button
-                variant="contained"
-                color={isPoseEstimation ? 'secondary' : 'primary'}
-                sx={{
-                  marginRight: 16
-                }}
-                onClick={() => handlePoseEstimation(COLLECT_DATA_INPUT)}
-              >
-                {isPoseEstimation ? 'Stop' : 'Collect Data'}
-              </Button>
-              <Button
-                variant="contained"
-                disabled={dataCollect}
-                onClick={handleTrainModel}
-              >
-                Train Model
-              </Button>
-            </Typography>
-          </Toolbar>
+          <TrainingModelControls
+            selectedWorkout={workoutState}
+            isCollectingData={isPoseEstimation}
+            isTrainModelDisabled={dataCollect}
+            onWorkoutSelect={handleWorkoutSelect}
+            onCollectDataClick={() => handlePoseEstimation(COLLECT_DATA_INPUT)}
+            onTrainModelClick={handleTrainModel}
+          />
         </Grid>
       </Grid>
       <Snackbar
-        open={snackbarDataColl}
-        autoHideDuration={2000}
+        isOpen={snackbarDataColl}
+        severity="info"
         onClose={closeSnackbarDataColl}
       >
-        <Alert severity="info" onClose={closeSnackbarDataColl}>
-          Started collecting pose data!
-        </Alert>
+        Started collecting pose data!
       </Snackbar>
       <Snackbar
-        open={snackbarDataNotColl}
-        autoHideDuration={2000}
+        isOpen={snackbarDataNotColl}
+        severity="success"
         onClose={closeSnackbarDataNotColl}
       >
-        <Alert severity="success" onClose={closeSnackbarDataNotColl}>
-          Completed collecting pose data!
-        </Alert>
+        Completed collecting pose data!
       </Snackbar>
     </div>
   );
