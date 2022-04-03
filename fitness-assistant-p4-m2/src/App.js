@@ -17,13 +17,16 @@ import TrainingModelControls from "./react-components/TrainingModelControls";
 import WorkoutRequirements from "./react-components/WorkoutRequirements";
 import Snackbar from "./react-components/Snackbar";
 import TrainingAppBar from "./react-components/TrainingAppBar";
+import config from "./config";
 
-const MIN_CONFIDENCE = 0.5;
-
-const MIN_KEYPOINT_SCORE_ACCEPTED = 0.1;
-
-const COLLECT_DATA_INPUT = 'COLLECT_DATA';
-const START_DELAY = 10000;
+const {
+  WINDOW_WIDTH,
+  WINDOW_HEIGHT,
+  MIN_CONFIDENCE,
+  MIN_KEYPOINT_SCORE_ACCEPTED,
+  START_DELAY,
+  COLLECT_DATA_INPUT
+} = config;
 
 const STATES = {
   WAITING: 'waiting',
@@ -34,21 +37,6 @@ const COLLECT_DATA_STATES = {
   INACTIVE: 'inactive',
   ACTIVE: 'active',
 }
-
-const WINDOW_WIDTH = 800;
-const WINDOW_HEIGHT = 600;
-
-const delay = (time) => {
-  return new Promise((resolve, reject) => {
-    if (isNaN(time)) {
-      reject(new Error('delay requires a valid number.'));
-    } else {
-      setTimeout(resolve, time);
-    }
-  });
-}
-
-const normalize = (input, range) => (input / (range / 2)) - 1;
 
 const loadPosenet = async () => {
   const poseNetModel = poseDetection.SupportedModels.PoseNet;
