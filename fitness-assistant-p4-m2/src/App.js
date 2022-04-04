@@ -1,6 +1,5 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useReducer, useRef, useState} from "react";
 import * as tf from '@tensorflow/tfjs';
-import * as poseDetection from '@tensorflow-models/pose-detection';
 import {drawKeypoints, drawSkeleton} from './utilities';
 import '@tensorflow/tfjs-backend-webgl';
 import './App.css';
@@ -18,6 +17,9 @@ import WorkoutRequirements from "./react-components/WorkoutRequirements";
 import Snackbar from "./react-components/Snackbar";
 import TrainingAppBar from "./react-components/TrainingAppBar";
 import config from "./config";
+import {loadPosenet, startPoseEstimation} from "./tensorflow-logic/posenet";
+import {ACTION_TYPES, actionGenerator, DATA_COLLECTION_STATES, initialState, reducer} from "./core-logic";
+import {delay, normalize} from "./utils";
 
 const {
   WINDOW_WIDTH,
@@ -25,7 +27,6 @@ const {
   MIN_CONFIDENCE,
   MIN_KEYPOINT_SCORE_ACCEPTED,
   START_DELAY,
-  COLLECT_DATA_INPUT
 } = config;
 
 const STATES = {
@@ -33,133 +34,68 @@ const STATES = {
   COLLECTING: 'collecting'
 }
 
-const COLLECT_DATA_STATES = {
-  INACTIVE: 'inactive',
-  ACTIVE: 'active',
-}
-
-const loadPosenet = async () => {
-  const poseNetModel = poseDetection.SupportedModels.PoseNet;
-  return await poseDetection.createDetector(poseNetModel, {
-    architecture: "MobileNetV1",
-    outputStride: 16,
-    inputResolution: {
-      width: WINDOW_WIDTH,
-      height: WINDOW_HEIGHT,
-    },
-    multiplier: 0.75
-  })
-}
-
 function App() {
   const webcamRef = useRef();
   const canvasRef = useRef();
   const poseEstimationLoop = useRef();
 
-  const [model, setModel] = useState();
-  const [state, setState] = useState(STATES.WAITING);
-  const [isPoseEstimation, setIsPoseEstimation] = useState(false);
-  const [opCollectData, setOpCollectData] = useState(COLLECT_DATA_STATES.INACTIVE);
-  const [snackbarDataColl, setSnackbarDataColl] = useState(false);
-  const [snackbarDataNotColl, setSnackbarDataNotColl] = useState(false);
-  const [workoutState, setWorkoutState] = useState('');
-  const [dataCollect, setDataCollect] = useState(false);
+  const [ state, dispatch ] = useReducer(reducer, initialState);
+
   const [rawData, setRawData] = useState([]);
 
-  const openSnackbarDataColl = useCallback(() => {
-    setSnackbarDataColl(true);
-  }, []);
-
-  const closeSnackbarDataColl = useCallback(() => {
-    setSnackbarDataColl(false);
-  }, []);
-
-  const openSnackbarDataNotColl = useCallback(() => {
-    setSnackbarDataNotColl(true);
-  }, []);
-
-  const closeSnackbarDataNotColl = useCallback(() => {
-    setSnackbarDataNotColl(false);
-  }, []);
-
   useEffect(() => {
-    loadPosenet()
+    dispatch(actionGenerator(ACTION_TYPES.LOAD_POSENET));
+    loadPosenet({
+      width: WINDOW_WIDTH,
+      height: WINDOW_HEIGHT
+    })
       .then((detector) => {
-        setModel(detector);
-        console.log('Posenet Model loaded.')
+        dispatch(actionGenerator(ACTION_TYPES.LOAD_POSENET_DONE,
+          {
+            model: detector
+          }));
       });
   }, []);
 
-  const startPoseEstimation = () => {
-    if (webcamRef?.current?.video.readyState === 4) {
-      // Run pose estimation each 100 milliseconds
-      poseEstimationLoop.current = setInterval(() => {
-        // Get Video Properties
-        const video = webcamRef.current?.video;
-        const videoWidth = webcamRef.current?.video.videoWidth;
-        const videoHeight = webcamRef.current?.video.videoHeight;
-
-        // Set video width
-        webcamRef.current.video.width = videoWidth;
-        webcamRef.current.video.height = videoHeight;
-
-        // Do pose estimation
-        const start = new Date().getTime();
-        model?.estimatePoses?.(video, {
-          flipHorizontal: false
-        }).then(poses => {
-          const end = new Date().getTime();
-          poses.forEach(pose => {
-            console.log('STATE-> ' + state);
-            const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
-              x: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, WINDOW_WIDTH) : 0,
-              y: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, WINDOW_HEIGHT) : 0,
-            }))
-            if (state === STATES.COLLECTING) {
-              console.log(end - start, " ms");
-              console.log(tf.getBackend());
-              console.log(pose);
-              console.log(workoutState.workout);
-              const rawDataRow = {xs: normalizedKeypoints, ys: workoutState.workout}
-              setRawData(rawData => [...rawData, rawDataRow]);
-            }
-            drawCanvas(pose, videoWidth, videoHeight, canvasRef.current);
-          });
-        });
-      }, 100);
-    }
-  };
-
-  const stopPoseEstimation = () => clearInterval(poseEstimationLoop.current);
-
-  const collectData = async () => {
-    setOpCollectData(COLLECT_DATA_STATES.ACTIVE);
-    await delay(START_DELAY);
-    openSnackbarDataColl();
-    console.log('Time to collect');
-    setState(STATES.COLLECTING);
-    await delay(START_DELAY);
-    openSnackbarDataNotColl();
-    console.log('Collecting done, waiting to stop');
-    setState(STATES.WAITING);
-    setOpCollectData(COLLECT_DATA_STATES.INACTIVE);
+  const stopPoseEstimation = () => {
+    clearInterval(poseEstimationLoop.current);
+    dispatch(actionGenerator(ACTION_TYPES.STOP_DATA_COLLECTION));
   }
 
-  const handlePoseEstimation = (input) => {
-    if (input === COLLECT_DATA_INPUT) {
-      console.log('COLLECT', isPoseEstimation, opCollectData, workoutState)
-      if (isPoseEstimation && opCollectData === COLLECT_DATA_STATES.INACTIVE) {
-        setIsPoseEstimation(state => !state);
-        setDataCollect(() => false);
-        stopPoseEstimation();
-        setState(STATES.WAITING);
-      } else if (!isPoseEstimation && workoutState) {
-        setIsPoseEstimation(state => !state);
-        setDataCollect(() => true)
-        startPoseEstimation();
-        collectData();
-      }
-    }
+  const collectData = async () => {
+    console.log('collect data');
+    dispatch(actionGenerator(ACTION_TYPES.REQUEST_DATA_COLLECTION));
+    await delay(START_DELAY);
+    console.log('collect tierras');
+    dispatch(actionGenerator(ACTION_TYPES.ACTIVATE_DATA_COLLECTION));
+    await delay(START_DELAY);
+    console.log('collect chocapic');
+    dispatch(actionGenerator(ACTION_TYPES.COMPLETE_DATA_COLLECTION));
+  }
+
+  const handlePoseEstimation = () => {
+    if (state.dataCollectionState === DATA_COLLECTION_STATES.COMPLETED) {
+      stopPoseEstimation();
+    } else if (state.dataCollectionState === DATA_COLLECTION_STATES.INACTIVE) {
+      collectData();
+      poseEstimationLoop.current = startPoseEstimation(state.model, {
+        webcamNode: webcamRef.current,
+        handlePose: (pose, { videoWidth, videoHeight }) => {
+          const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
+            x: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, WINDOW_WIDTH) : 0,
+            y: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, WINDOW_HEIGHT) : 0,
+          }))
+          if (state.dataCollectionState === STATES.COLLECTING) {
+            console.log(tf.getBackend());
+            console.log(pose);
+            console.log(state.selectedWorkout);
+            const rawDataRow = {xs: normalizedKeypoints, ys: state.selectedWorkout}
+            setRawData(rawData => [...rawData, rawDataRow]);
+          }
+          drawCanvas(pose, videoWidth, videoHeight, canvasRef.current);
+        },
+      });
+    };
   };
 
   const drawCanvas = (pose, videoWidth, videoHeight, canvas) => {
@@ -171,7 +107,7 @@ function App() {
   }
 
   const handleWorkoutSelect = (event) => {
-    setWorkoutState(() => event?.target?.value)
+    dispatch(actionGenerator(ACTION_TYPES.SELECT_WORKOUT, { workout: event.target?.value }));
   }
 
   const handleTrainModel = async () => {
@@ -217,26 +153,26 @@ function App() {
           }}
         >
           <TrainingModelControls
-            selectedWorkout={workoutState}
-            isCollectingData={isPoseEstimation}
-            isTrainModelDisabled={dataCollect}
+            selectedWorkout={state.selectedWorkout}
+            canRequestDataCollection={state.canRequestDataCollection}
+            isTrainModelDisabled={!state.canTrainModel}
             onWorkoutSelect={handleWorkoutSelect}
-            onCollectDataClick={() => handlePoseEstimation(COLLECT_DATA_INPUT)}
+            onCollectDataClick={handlePoseEstimation}
             onTrainModelClick={handleTrainModel}
           />
         </Grid>
       </Grid>
       <Snackbar
-        isOpen={snackbarDataColl}
+        isOpen={state.isCollectStartSnackbarOpen}
         severity="info"
-        onClose={closeSnackbarDataColl}
+        onClose={() => dispatch(actionGenerator(ACTION_TYPES.HIDE_COLLECT_START_SNACKBAR))}
       >
         Started collecting pose data!
       </Snackbar>
       <Snackbar
-        isOpen={snackbarDataNotColl}
+        isOpen={state.isCollectCompleteSnackbarOpen}
         severity="success"
-        onClose={closeSnackbarDataNotColl}
+        onClose={() => dispatch(actionGenerator((ACTION_TYPES.HIDE_COLLECT_COMPLETE_SNACKBAR)))}
       >
         Completed collecting pose data!
       </Snackbar>

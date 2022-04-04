@@ -1,7 +1,7 @@
 import {Button, FormControl, FormHelperText, InputLabel, NativeSelect, Toolbar, Typography} from "@mui/material";
 
 const TrainingModelControls = ({
-  isCollectingData,
+  canRequestDataCollection,
   isTrainModelDisabled,
   onCollectDataClick,
   onTrainModelClick,
@@ -41,14 +41,16 @@ const TrainingModelControls = ({
         }}
       >
         <Button
+          key="collect-data-btn"
           variant="contained"
-          color={isCollectingData ? 'secondary' : 'primary'}
+          color={canRequestDataCollection ? 'primary' : 'secondary'}
+          disabled={!selectedWorkout}
           sx={{
             marginRight: 16
           }}
           onClick={onCollectDataClick}
         >
-          {isCollectingData ? 'Stop' : 'Collect Data'}
+          {canRequestDataCollection ? 'Collect Data' : 'Stop'}
         </Button>
         <Button
           variant="contained"
