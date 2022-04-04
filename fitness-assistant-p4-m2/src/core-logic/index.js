@@ -13,6 +13,7 @@ export const initialState = {
   isCollectStartSnackbarOpen: false,
   isCollectCompleteSnackbarOpen: false,
   canTrainModel: false,
+  collectedData: [],
 }
 
 export const ACTION_TYPES = {
@@ -26,6 +27,7 @@ export const ACTION_TYPES = {
   HIDE_COLLECT_START_SNACKBAR: 'HIDE_COLLECT_START_SNACKBAR',
   DISPLAY_COLLECT_COMPLETE_SNACKBAR: 'DISPLAY_COLLECT_COMPLETE_SNACKBAR',
   HIDE_COLLECT_COMPLETE_SNACKBAR: 'HIDE_COLLECT_COMPLETE_SNACKBAR',
+  PUSH_POSE_DATA: 'PUSH_POSE_DATA',
 }
 
 export const actionGenerator = (type, payload = {}) => ({
@@ -57,12 +59,12 @@ export const reducer = (state = initialState, action) => {
       dataCollectionState: DATA_COLLECTION_STATES.REQUESTED,
       canRequestDataCollection: false,
       canTrainModel: false,
+      collectedData: [],
     }),
     [ACTION_TYPES.ACTIVATE_DATA_COLLECTION]: () => {
       return {
         ...state,
         dataCollectionState: DATA_COLLECTION_STATES.ACTIVE,
-        canRequestDataCollection: true,
         isCollectStartSnackbarOpen: true,
         canTrainModel: false
       }
@@ -70,7 +72,7 @@ export const reducer = (state = initialState, action) => {
     [ACTION_TYPES.STOP_DATA_COLLECTION]: () => ({
       ...state,
       dataCollectionState: DATA_COLLECTION_STATES.INACTIVE,
-      canRequestDataCollection: false,
+      canRequestDataCollection: true,
     }),
     [ACTION_TYPES.COMPLETE_DATA_COLLECTION]: () => ({
       ...state,
@@ -86,9 +88,11 @@ export const reducer = (state = initialState, action) => {
       ...state,
       isCollectCompleteSnackbarOpen: false,
     }),
+    [ACTION_TYPES.PUSH_POSE_DATA]: () => ({
+      ...state,
+      collectedData: [...state.collectedData, action.payload.poseData],
+    }),
   }
 
-  const newState = actionReducers[action?.type] ? actionReducers[action?.type]() : state;
-  console.log('newState', newState);
-  return newState;
+  return actionReducers[action?.type] ? actionReducers[action?.type]() : state;
 }

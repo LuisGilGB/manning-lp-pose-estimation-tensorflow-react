@@ -41,7 +41,7 @@ function App() {
 
   const [ state, dispatch ] = useReducer(reducer, initialState);
 
-  const [rawData, setRawData] = useState([]);
+  const [ rawData, setRawData ] = useState([]);
 
   useEffect(() => {
     dispatch(actionGenerator(ACTION_TYPES.LOAD_POSENET));
@@ -63,14 +63,28 @@ function App() {
   }
 
   const collectData = async () => {
-    console.log('collect data');
     dispatch(actionGenerator(ACTION_TYPES.REQUEST_DATA_COLLECTION));
     await delay(START_DELAY);
-    console.log('collect tierras');
     dispatch(actionGenerator(ACTION_TYPES.ACTIVATE_DATA_COLLECTION));
     await delay(START_DELAY);
-    console.log('collect chocapic');
     dispatch(actionGenerator(ACTION_TYPES.COMPLETE_DATA_COLLECTION));
+  }
+
+  const handlePose = (pose, { videoWidth, videoHeight }) => {
+    console.log('state', state);
+    const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
+      x: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, WINDOW_WIDTH) : 0,
+      y: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, WINDOW_HEIGHT) : 0,
+    }));
+    console.log('state.dataCollectionState', state.dataCollectionState);
+    if ([DATA_COLLECTION_STATES.ACTIVE, DATA_COLLECTION_STATES.COMPLETED].includes(state.dataCollectionState)) {
+      console.log(tf.getBackend());
+      console.log(pose);
+      console.log(state.selectedWorkout);
+      const rawDataRow = {xs: normalizedKeypoints, ys: state.selectedWorkout}
+      dispatch(ACTION_TYPES.PUSH_POSE_DATA, {poseData: rawDataRow})
+    }
+    drawCanvas(pose, videoWidth, videoHeight, canvasRef.current);
   }
 
   const handlePoseEstimation = () => {
@@ -80,20 +94,7 @@ function App() {
       collectData();
       poseEstimationLoop.current = startPoseEstimation(state.model, {
         webcamNode: webcamRef.current,
-        handlePose: (pose, { videoWidth, videoHeight }) => {
-          const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
-            x: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, WINDOW_WIDTH) : 0,
-            y: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, WINDOW_HEIGHT) : 0,
-          }))
-          if (state.dataCollectionState === STATES.COLLECTING) {
-            console.log(tf.getBackend());
-            console.log(pose);
-            console.log(state.selectedWorkout);
-            const rawDataRow = {xs: normalizedKeypoints, ys: state.selectedWorkout}
-            setRawData(rawData => [...rawData, rawDataRow]);
-          }
-          drawCanvas(pose, videoWidth, videoHeight, canvasRef.current);
-        },
+        handlePose,
       });
     };
   };
@@ -111,8 +112,8 @@ function App() {
   }
 
   const handleTrainModel = async () => {
-    if (rawData?.length) {
-      console.log('rawData length', rawData.length);
+    if (state.collectedData?.length) {
+      console.log('collected data length', state.collectedData.length);
     }
   }
 
