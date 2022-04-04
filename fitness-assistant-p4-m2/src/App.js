@@ -37,7 +37,7 @@ const STATES = {
 function App() {
   const webcamRef = useRef();
   const canvasRef = useRef();
-  const poseEstimationLoop = useRef();
+  const poseEstimationLoop = useRef(null);
 
   const [ state, dispatch ] = useReducer(reducer, initialState);
 
