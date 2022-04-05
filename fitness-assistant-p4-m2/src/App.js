@@ -18,7 +18,7 @@ import Snackbar from "./react-components/Snackbar";
 import TrainingAppBar from "./react-components/TrainingAppBar";
 import config from "./config";
 import {loadPosenet, startPoseEstimation} from "./tensorflow-logic/posenet";
-import {ACTION_TYPES, actionGenerator, DATA_COLLECTION_STATES, initialState, reducer} from "./core-logic";
+import {ACTION_TYPES, actionCreator, DATA_COLLECTION_STATES, initialState, reducer} from "./core-logic";
 import {delay, normalize} from "./utils";
 
 const {
@@ -44,13 +44,13 @@ function App() {
   const [ rawData, setRawData ] = useState([]);
 
   useEffect(() => {
-    dispatch(actionGenerator(ACTION_TYPES.LOAD_POSENET));
+    dispatch(actionCreator(ACTION_TYPES.LOAD_POSENET));
     loadPosenet({
       width: WINDOW_WIDTH,
       height: WINDOW_HEIGHT
     })
       .then((detector) => {
-        dispatch(actionGenerator(ACTION_TYPES.LOAD_POSENET_DONE,
+        dispatch(actionCreator(ACTION_TYPES.LOAD_POSENET_DONE,
           {
             model: detector
           }));
@@ -59,31 +59,19 @@ function App() {
 
   const stopPoseEstimation = () => {
     clearInterval(poseEstimationLoop.current);
-    dispatch(actionGenerator(ACTION_TYPES.STOP_DATA_COLLECTION));
+    dispatch(actionCreator(ACTION_TYPES.STOP_DATA_COLLECTION));
   }
 
   const collectData = async () => {
-    dispatch(actionGenerator(ACTION_TYPES.REQUEST_DATA_COLLECTION));
+    dispatch(actionCreator(ACTION_TYPES.REQUEST_DATA_COLLECTION));
     await delay(START_DELAY);
-    dispatch(actionGenerator(ACTION_TYPES.ACTIVATE_DATA_COLLECTION));
+    dispatch(actionCreator(ACTION_TYPES.ACTIVATE_DATA_COLLECTION));
     await delay(START_DELAY);
-    dispatch(actionGenerator(ACTION_TYPES.COMPLETE_DATA_COLLECTION));
+    dispatch(actionCreator(ACTION_TYPES.COMPLETE_DATA_COLLECTION));
   }
 
   const handlePose = (pose, { videoWidth, videoHeight }) => {
-    console.log('state', state);
-    const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
-      x: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, WINDOW_WIDTH) : 0,
-      y: keypoint.score >= MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, WINDOW_HEIGHT) : 0,
-    }));
-    console.log('state.dataCollectionState', state.dataCollectionState);
-    if ([DATA_COLLECTION_STATES.ACTIVE, DATA_COLLECTION_STATES.COMPLETED].includes(state.dataCollectionState)) {
-      console.log(tf.getBackend());
-      console.log(pose);
-      console.log(state.selectedWorkout);
-      const rawDataRow = {xs: normalizedKeypoints, ys: state.selectedWorkout}
-      dispatch(ACTION_TYPES.PUSH_POSE_DATA, {poseData: rawDataRow})
-    }
+    dispatch(actionCreator(ACTION_TYPES.HANDLE_POSE, {pose, videoWidth, videoHeight}));
     drawCanvas(pose, videoWidth, videoHeight, canvasRef.current);
   }
 
@@ -108,7 +96,7 @@ function App() {
   }
 
   const handleWorkoutSelect = (event) => {
-    dispatch(actionGenerator(ACTION_TYPES.SELECT_WORKOUT, { workout: event.target?.value }));
+    dispatch(actionCreator(ACTION_TYPES.SELECT_WORKOUT, { workout: event.target?.value }));
   }
 
   const handleTrainModel = async () => {
@@ -166,14 +154,14 @@ function App() {
       <Snackbar
         isOpen={state.isCollectStartSnackbarOpen}
         severity="info"
-        onClose={() => dispatch(actionGenerator(ACTION_TYPES.HIDE_COLLECT_START_SNACKBAR))}
+        onClose={() => dispatch(actionCreator(ACTION_TYPES.HIDE_COLLECT_START_SNACKBAR))}
       >
         Started collecting pose data!
       </Snackbar>
       <Snackbar
         isOpen={state.isCollectCompleteSnackbarOpen}
         severity="success"
-        onClose={() => dispatch(actionGenerator((ACTION_TYPES.HIDE_COLLECT_COMPLETE_SNACKBAR)))}
+        onClose={() => dispatch(actionCreator((ACTION_TYPES.HIDE_COLLECT_COMPLETE_SNACKBAR)))}
       >
         Completed collecting pose data!
       </Snackbar>

@@ -1,3 +1,6 @@
+import {normalize} from "../utils";
+import config from "../config";
+
 export const DATA_COLLECTION_STATES = {
   INACTIVE: 'INACTIVE',
   REQUESTED: 'REQUESTED',
@@ -27,10 +30,10 @@ export const ACTION_TYPES = {
   HIDE_COLLECT_START_SNACKBAR: 'HIDE_COLLECT_START_SNACKBAR',
   DISPLAY_COLLECT_COMPLETE_SNACKBAR: 'DISPLAY_COLLECT_COMPLETE_SNACKBAR',
   HIDE_COLLECT_COMPLETE_SNACKBAR: 'HIDE_COLLECT_COMPLETE_SNACKBAR',
-  PUSH_POSE_DATA: 'PUSH_POSE_DATA',
+  HANDLE_POSE: 'HANDLE_POSE',
 }
 
-export const actionGenerator = (type, payload = {}) => ({
+export const actionCreator = (type, payload = {}) => ({
   type,
   payload
 });
@@ -88,10 +91,26 @@ export const reducer = (state = initialState, action) => {
       ...state,
       isCollectCompleteSnackbarOpen: false,
     }),
-    [ACTION_TYPES.PUSH_POSE_DATA]: () => ({
-      ...state,
-      collectedData: [...state.collectedData, action.payload.poseData],
-    }),
+    [ACTION_TYPES.HANDLE_POSE]: () => {
+      if (![DATA_COLLECTION_STATES.ACTIVE, DATA_COLLECTION_STATES.COMPLETED].includes(state.dataCollectionState)) {
+        return state;
+      }
+      const {
+        pose,
+        videoWidth,
+        videoHeight
+      } = action.payload;
+      const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
+        x: keypoint.score >= config.MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, videoWidth) : 0,
+        y: keypoint.score >= config.MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, videoHeight) : 0,
+      }));
+      const newCollectedPose = {xs: normalizedKeypoints, ys: state.selectedWorkout};
+      console.log('Collected pose: ', newCollectedPose);
+      return ({
+        ...state,
+        collectedData: [...state.collectedData, newCollectedPose],
+      })
+    },
   }
 
   return actionReducers[action?.type] ? actionReducers[action?.type]() : state;
