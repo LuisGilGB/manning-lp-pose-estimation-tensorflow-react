@@ -41,8 +41,6 @@ function App() {
 
   const [ state, dispatch ] = useReducer(reducer, initialState);
 
-  const [ rawData, setRawData ] = useState([]);
-
   useEffect(() => {
     dispatch(actionCreator(ACTION_TYPES.LOAD_POSENET));
     loadPosenet({
@@ -102,6 +100,7 @@ function App() {
   const handleTrainModel = async () => {
     if (state.collectedData?.length) {
       console.log('collected data length', state.collectedData.length);
+      const [numberOfFeatures, trainingSet, validationSet] = processData(state.collectedData);
     }
   }
 
