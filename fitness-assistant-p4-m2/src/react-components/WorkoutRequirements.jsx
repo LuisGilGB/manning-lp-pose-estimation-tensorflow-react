@@ -1,19 +1,11 @@
 import {Card, CardContent, Toolbar, Typography} from "@mui/material";
+import config from "../config";
 
 const WorkoutRequirements = () => (
   <Toolbar style={{justifyContent: 'center'}}>
-    {[{
-      name: 'Jumping Jacks',
-      value: 75,
-    }, {
-      name: 'Wall-sit',
-      value: 200,
-    }, {
-      name: 'Lunges',
-      value: 5,
-    }].map(({name, value}) => (
+    {Object.values(config.TRAINING_TYPES).map(training => (
       <Card
-        key={name}
+        key={training.key}
         sx={{
           width: '250px',
           margin: '10px',
@@ -28,14 +20,14 @@ const WorkoutRequirements = () => (
             color="textSecondary"
             gutterBottom
           >
-            {name}
+            {training.label}
           </Typography>
           <Typography
             variant="h2"
             component="h2"
             color="secondary"
           >
-            {value}
+            {training.goal}
           </Typography>
         </CardContent>
       </Card>

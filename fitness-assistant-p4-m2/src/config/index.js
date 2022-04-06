@@ -7,6 +7,23 @@ const config = {
   COLLECT_DATA_INPUT: 'COLLECT_DATA',
   WEBCAM_READY_CODE: 4,
   POSE_ESTIMATION_INTERVAL: 100,
+  TRAINING_TYPES: {
+    'JUMPING_JACKS': {
+      key: 'JUMPING_JACKS',
+      label: 'Jumping jacks',
+      goal: 75,
+    },
+    'WALL_SIT': {
+      key: 'WALL_SIT',
+      label: 'Wall-Sit',
+      goal: 200,
+    },
+    'LUNGES': {
+      key: 'LUNGES',
+      label: 'Lunges',
+      goal: 5,
+    },
+  },
 };
 
 export default config;

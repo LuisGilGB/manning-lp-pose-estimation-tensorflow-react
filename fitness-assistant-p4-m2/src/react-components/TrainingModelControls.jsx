@@ -1,4 +1,5 @@
 import {Button, FormControl, FormHelperText, InputLabel, NativeSelect, Toolbar, Typography} from "@mui/material";
+import config from "../config";
 
 const TrainingModelControls = ({
   canRequestDataCollection,
@@ -26,9 +27,9 @@ const TrainingModelControls = ({
         onChange={onWorkoutSelect}
       >
         <option>None</option>
-        <option value="jumping_jacks">Jumping Jacks</option>
-        <option value="wall-sit">Wall-Sit</option>
-        <option value="lunges">Lunges</option>
+        {Object.keys(config.TRAINING_TYPES).map(training => (
+          <option value={training} key={training}>{config.TRAINING_TYPES[training].label}</option>
+        ))}
       </NativeSelect>
       <FormHelperText>
         Select training data type
