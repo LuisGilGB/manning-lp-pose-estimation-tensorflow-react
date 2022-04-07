@@ -47,7 +47,6 @@ const TrainingModelControls = ({
           variant="contained"
           color={canRequestDataCollection ? 'primary' : 'secondary'}
           disabled={isCollectDataDisabled}
-          disabled={!selectedWorkout}
           sx={{
             marginRight: 16
           }}

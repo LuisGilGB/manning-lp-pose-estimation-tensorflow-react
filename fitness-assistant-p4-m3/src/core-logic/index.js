@@ -104,10 +104,13 @@ export const reducer = (state = initialState, action) => {
         videoWidth,
         videoHeight
       } = action.payload;
-      const normalizedKeypoints = pose.keypoints.map((keypoint) => ({
-        x: keypoint.score >= config.MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, videoWidth) : 0,
-        y: keypoint.score >= config.MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, videoHeight) : 0,
-      }));
+      const normalizedKeypoints = pose.keypoints.reduce((acc, keypoint) => {
+        const x = keypoint.score >= config.MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.x, videoWidth) : 0;
+        const y = keypoint.score >= config.MIN_KEYPOINT_SCORE_ACCEPTED ? normalize(keypoint.y, videoHeight) : 0;
+        acc.push(x);
+        acc.push(y);
+        return acc;
+      }, []);
       const newCollectedPose = {xs: normalizedKeypoints, ys: state.selectedWorkout};
       console.log('Collected pose: ', newCollectedPose);
       return ({

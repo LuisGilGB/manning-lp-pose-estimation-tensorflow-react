@@ -1,5 +1,4 @@
-import {useEffect, useReducer, useRef, useState} from "react";
-import * as tf from '@tensorflow/tfjs';
+import {useEffect, useReducer, useRef } from "react";
 import {drawKeypoints, drawSkeleton} from './utilities';
 import '@tensorflow/tfjs-backend-webgl';
 import './App.css';
@@ -19,20 +18,14 @@ import TrainingAppBar from "./react-components/TrainingAppBar";
 import config from "./config";
 import {loadPosenet, startPoseEstimation} from "./tensorflow-logic/posenet";
 import {ACTION_TYPES, actionCreator, DATA_COLLECTION_STATES, initialState, reducer} from "./core-logic";
-import {delay, normalize} from "./utils";
+import {delay} from "./utils";
 
 const {
   WINDOW_WIDTH,
   WINDOW_HEIGHT,
   MIN_CONFIDENCE,
-  MIN_KEYPOINT_SCORE_ACCEPTED,
   START_DELAY,
 } = config;
-
-const STATES = {
-  WAITING: 'waiting',
-  COLLECTING: 'collecting'
-}
 
 function App() {
   const webcamRef = useRef();
@@ -100,7 +93,7 @@ function App() {
   const handleTrainModel = async () => {
     if (state.collectedData?.length) {
       console.log('collected data length', state.collectedData.length);
-      const [numberOfFeatures, trainingSet, validationSet] = processData(state.collectedData);
+      const [numberOfFeatures, trainingSet, validationSet] = await processData(state.collectedData);
       dispatch(actionCreator(ACTION_TYPES.START_MODEL_TRAINING));
       await runTraining(trainingSet, validationSet, numberOfFeatures);
       dispatch(actionCreator(ACTION_TYPES.STOP_MODEL_TRAINING));
