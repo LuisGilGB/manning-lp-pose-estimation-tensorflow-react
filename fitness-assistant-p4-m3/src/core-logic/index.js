@@ -12,11 +12,13 @@ export const initialState = {
   model: null,
   selectedWorkout: '',
   dataCollectionState: DATA_COLLECTION_STATES.INACTIVE,
-  canRequestDataCollection: false,
+  canRequestDataCollection: true,
   isCollectStartSnackbarOpen: false,
   isCollectCompleteSnackbarOpen: false,
+  canCollectData: false,
   canTrainModel: false,
   collectedData: [],
+  isTrainingModel: false,
 }
 
 export const ACTION_TYPES = {
@@ -31,6 +33,8 @@ export const ACTION_TYPES = {
   DISPLAY_COLLECT_COMPLETE_SNACKBAR: 'DISPLAY_COLLECT_COMPLETE_SNACKBAR',
   HIDE_COLLECT_COMPLETE_SNACKBAR: 'HIDE_COLLECT_COMPLETE_SNACKBAR',
   HANDLE_POSE: 'HANDLE_POSE',
+  START_MODEL_TRAINING: 'START_MODEL_TRAINING',
+  STOP_MODEL_TRAINING: 'STOP_MODEL_TRAINING',
 }
 
 export const actionCreator = (type, payload = {}) => ({
@@ -54,7 +58,7 @@ export const reducer = (state = initialState, action) => {
       return {
       ...state,
         selectedWorkout: newWorkout || '',
-        canRequestDataCollection: !!newWorkout
+        isCollectDataDisabled: !newWorkout
       }
     },
     [ACTION_TYPES.REQUEST_DATA_COLLECTION]: () => ({
@@ -111,6 +115,16 @@ export const reducer = (state = initialState, action) => {
         collectedData: [...state.collectedData, newCollectedPose],
       })
     },
+    [ACTION_TYPES.START_MODEL_TRAINING]: () => ({
+      ...state,
+      isTrainingModel: true,
+      isCollectDataDisabled: true,
+    }),
+    [ACTION_TYPES.STOP_MODEL_TRAINING]: () => ({
+      ...state,
+      isTrainingModel: false,
+      isCollectDataDisabled: !state.selectedWorkout,
+    }),
   }
 
   return actionReducers[action?.type] ? actionReducers[action?.type]() : state;

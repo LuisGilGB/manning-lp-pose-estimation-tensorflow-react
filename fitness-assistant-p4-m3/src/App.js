@@ -101,6 +101,9 @@ function App() {
     if (state.collectedData?.length) {
       console.log('collected data length', state.collectedData.length);
       const [numberOfFeatures, trainingSet, validationSet] = processData(state.collectedData);
+      dispatch(actionCreator(ACTION_TYPES.START_MODEL_TRAINING));
+      await runTraining(trainingSet, validationSet, numberOfFeatures);
+      dispatch(actionCreator(ACTION_TYPES.STOP_MODEL_TRAINING));
     }
   }
 

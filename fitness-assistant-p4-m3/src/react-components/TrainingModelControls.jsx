@@ -3,6 +3,7 @@ import config from "../config";
 
 const TrainingModelControls = ({
   canRequestDataCollection,
+  isCollectDataDisabled,
   isTrainModelDisabled,
   onCollectDataClick,
   onTrainModelClick,
@@ -45,6 +46,7 @@ const TrainingModelControls = ({
           key="collect-data-btn"
           variant="contained"
           color={canRequestDataCollection ? 'primary' : 'secondary'}
+          disabled={isCollectDataDisabled}
           disabled={!selectedWorkout}
           sx={{
             marginRight: 16
