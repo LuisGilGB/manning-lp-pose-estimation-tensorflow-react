@@ -13,7 +13,6 @@ export const processData = inputData => {
     const labels = Object.keys(config.TRAINING_TYPES).map(trainingType => ys === trainingType ? 1 : 0);
     return { xs: Object.values(xs), ys: Object.values(labels) };
   }).batch(BATCH_SIZE);
-  console.log(inputData)
   const numberOfFeatures = inputData[0].xs.length;
   const trainingSet = encodeAndBatchSet(shuffledSet.take(trainingSetSize));
   const validationSet = encodeAndBatchSet(shuffledSet.skip(trainingSetSize));
